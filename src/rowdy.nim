@@ -1,6 +1,6 @@
 import typetraits, strutils, parseutils, sequtils, mummy/routers, mummy, urlly
 
-proc args(declaration: typedesc[proc]): seq[string] =
+proc args*(declaration: typedesc[proc]): seq[string] =
   captureBetween(declaration.name, '(', ')').split(", ").mapIt(it.split(": ")[0])
 
 using req: Request
@@ -57,24 +57,3 @@ template get*(router: var Router, handler: auto) = router.autoRoute("GET", handl
 template put*(router: var Router, handler: auto) = router.autoRoute("PUT", handler)
 template delete*(router: var Router, handler: auto) = router.autoRoute("DELETE", handler)
 template post*(router: var Router, handler: auto) = router.autoRoute("POST", handler)
-
-when isMainModule:
-  import norm/[model, sqlite], sugar, print
-  type Post* = ref object of Model
-    text*: string
-  let db = open(":memory:", "", "", "")
-  db.createTables(Post())
-  proc getPost(id: int): string =
-    Post().dup(db.select("id = ?", id)).text
-  proc createPost(post: Post): string =
-    {.cast(gcsafe)}:
-      print post
-      discard post.dup(db.insert)
-    return "created"
-  var router: Router
-  router.get(getPost)
-  router.post(createPost)
-  router.get("/", proc (request: Request) = request.respond(200, body = "the index"))
-  let server = newServer(router)
-  echo "Serving on http://localhost:8080"
-  server.serve(Port(8080))
