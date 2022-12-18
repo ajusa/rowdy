@@ -1,59 +1,57 @@
-import typetraits, strutils, parseutils, sequtils, mummy/routers, mummy, urlly
-
-proc args*(declaration: typedesc[proc]): seq[string] =
-  captureBetween(declaration.name, '(', ')').split(", ").mapIt(it.split(": ")[0])
+import std/[strutils, parseutils, macros, genasts]
+import mummy, mummy/routers, urlly
 
 using req: Request
-func query*(req): QueryParams = 
+func params*(req): QueryParams =
   if req.httpMethod == "GET":
     req.uri.parseUrl.query
   else:
     req.body.parseUrl.query
-proc fromRequest*(req; key: string, v: var SomeInteger) = 
-  if req.query[key].len != 0:
-    v = req.query[key].parseInt
-proc fromRequest*(req; key: string, v: var string) = v = req.query[key]
-proc fromRequest*(req; key: string, v: var bool) = v = req.query[key].len != 0
-proc fromRequest*[T: object](req; key: string, v: var T) = 
+proc fromRequest*(req; key: string; v: var SomeInteger) =
+  if req.params[key].len != 0:
+    v = req.params[key].parseInt
+proc fromRequest*(req; key: string; v: var string) = v = req.params[key]
+proc fromRequest*(req; key: string; v: var bool) = v = req.params[key].len != 0
+proc fromRequest*[T: object](req; key: string; v: var T) =
   for name, value in v.fieldPairs:
-    echo name, value
     req.fromRequest(name, value)
 
-proc fromRequest*[T: ref object](req; key: string, v: var T) = 
+proc fromRequest*[T: ref object](req; key: string; v: var T) =
   for name, value in v[].fieldPairs:
-    echo name, value
     req.fromRequest(name, value)
 
-proc fromRequest*(req; key: string, v: var Request) = v = req
+proc fromRequest*(req; key: string; v: var Request) = v = req
 
-template autoRoute[T1](router: var Router, httpMethod: string, handler: proc(arg1: T1): string) =
+macro expandHandler*(request: Request; handler: proc): untyped =
+  result = newStmtList()
+  let
+    pImpl = handler.getImpl()
+    call = newCall(handler)
+  for idef in pImpl.params[1..^1]:
+    let name = idef[0]
+    let newName = genSym(nskVar, "arg")
+    call.add newName
+    result.add:
+      genast(request, newName, typ = idef[1], name):
+        var newName: typ
+        when compiles(new(newName)):
+          new(newName)
+        request.fromRequest(astToStr(name), newName)
+  result.add:
+    genast(request, call):
+      # In case the handler doesn't return a string
+      when compiles(request.respond(200, body = call)):
+        request.respond(200, body = call)
+      else:
+        call
+
+template autoRoute*(router: var Router; httpMethod: string; handler: proc) =
   block:
-    proc mummyHandler(request: Request) =
-      var arg1: T1
-      when compiles(new(arg1)):
-        new(arg1)
-      # when compiles(request.fromRequest(handler.type.args[0], arg1)):
-      request.fromRequest(handler.type.args[0], arg1)
-      let response = handler(arg1)
-      request.respond(200, body = response)
+    proc mummyHandler(req) =
+      req.expandHandler(handler)
     router.addRoute(httpMethod, "/" & astToStr(handler), mummyHandler)
 
-template autoRoute[T1, T2](router: var Router, httpMethod: string, handler: proc(arg1: T1, arg2: T2): string) =
-  block:
-    proc mummyHandler(request: Request) =
-      var arg1: T1
-      when compiles(request.fromRequest(handler.type.args[0], arg1)):
-        request.fromRequest(handler.type.args[0], arg1)
-      var arg2: T2
-      when compiles(request.fromRequest(handler.type.args[0], arg2)):
-        request.fromRequest(handler.type.args[0], arg2)
-      let response = handler(arg1, arg2)
-      request.respond(200, body = response)
-    router.addRoute(httpMethod, "/" & astToStr(handler), mummyHandler)
-
-# const httpMethod = path[0..<path.find({'A'..'Z'})].toUpperAscii
-
-template get*(router: var Router, handler: auto) = router.autoRoute("GET", handler)
-template put*(router: var Router, handler: auto) = router.autoRoute("PUT", handler)
-template delete*(router: var Router, handler: auto) = router.autoRoute("DELETE", handler)
-template post*(router: var Router, handler: auto) = router.autoRoute("POST", handler)
+template get*(router: var Router; handler: auto) = router.autoRoute("GET", handler)
+template put*(router: var Router; handler: auto) = router.autoRoute("PUT", handler)
+template delete*(router: var Router; handler: auto) = router.autoRoute("DELETE", handler)
+template post*(router: var Router; handler: auto) = router.autoRoute("POST", handler)
