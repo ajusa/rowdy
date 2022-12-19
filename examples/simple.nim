@@ -1,4 +1,4 @@
-import mummy, mummy/routers, rowdy
+import rowdy
 proc getPost(id: int): string =
   "you requested a post with id " & $id
 

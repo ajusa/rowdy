@@ -1,5 +1,6 @@
 import std/[strutils, parseutils, macros, genasts]
 import mummy, mummy/routers, webby
+export mummy, routers
 
 using req: Request
 func params*(req): QueryParams =

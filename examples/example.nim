@@ -1,4 +1,4 @@
-import mummy, mummy/routers, rowdy
+import rowdy
 import norm/[model, sqlite], sugar
 type Post* = ref object of Model
   text*: string
