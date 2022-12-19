@@ -29,9 +29,12 @@ proc fromRequest*(req; key: string; v: var Request) = v = req
 
 macro expandHandler*(request: Request; handler: proc): untyped =
   result = newStmtList()
-  let
+  var pImpl: NimNode
+  if handler.kind == nnkLambda:
+    pImpl = handler
+  else:
     pImpl = handler.getImpl()
-    call = newCall(handler)
+  let call = newCall(handler)
   for idef in pImpl.params[1..^1]:
     let name = idef[0]
     let newName = genSym(nskVar, "arg")
@@ -50,13 +53,19 @@ macro expandHandler*(request: Request; handler: proc): untyped =
       else:
         call
 
-template autoRoute*(router: var Router; httpMethod: string; handler: proc) =
+template autoRoute*(router: var Router; methud: string; handler: proc) =
   block:
     proc mummyHandler(request: Request) =
       request.expandHandler(handler)
-    router.addRoute(httpMethod, "/" & astToStr(handler), mummyHandler)
+    router.addRoute(methud, "/" & astToStr(handler), mummyHandler)
 
-template get*(router: var Router; handler: auto) = router.autoRoute("GET", handler)
-template put*(router: var Router; handler: auto) = router.autoRoute("PUT", handler)
-template delete*(router: var Router; handler: auto) = router.autoRoute("DELETE", handler)
-template post*(router: var Router; handler: auto) = router.autoRoute("POST", handler)
+template autoRoute*(router: var Router; methud, path: string; handler: proc) =
+  block:
+    proc mummyHandler(request: Request) =
+      request.expandHandler(handler)
+    router.addRoute(methud, path, mummyHandler)
+
+template get*(router: var Router; handler: proc) = router.autoRoute("GET", handler)
+template put*(router: var Router; handler: proc) = router.autoRoute("PUT", handler)
+template delete*(router: var Router; handler: proc) = router.autoRoute("DELETE", handler)
+template post*(router: var Router; handler: proc) = router.autoRoute("POST", handler)

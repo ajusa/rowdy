@@ -19,6 +19,12 @@ echo "Serving on http://localhost:8080"
 server.serve(Port(8080))
 ```
 
+At this point, if you visit http://localhost:8080/getPost?id=4 you should see
+```
+you requested a post with id 4
+```
+
+
 # API: rowdy
 
 ```nim
