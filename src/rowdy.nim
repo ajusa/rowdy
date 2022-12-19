@@ -1,12 +1,13 @@
 import std/[strutils, parseutils, macros, genasts]
-import mummy, mummy/routers, urlly
+import mummy, mummy/routers, webby
 
 using req: Request
 func params*(req): QueryParams =
   if req.httpMethod == "GET":
-    req.uri.parseUrl.query
+    req.uri[req.uri.rfind("?") + 1 .. ^1].parseSearch
   else:
-    req.body.parseUrl.query
+    req.body.parseSearch
+
 proc fromRequest*(req; k: string; v: var SomeInteger) =
   if k in req.params:
     v = req.params[k].parseInt
