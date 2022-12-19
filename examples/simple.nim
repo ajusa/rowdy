@@ -4,7 +4,7 @@ proc getPost(id: int): string =
 
 var router: Router
 router.get(getPost)
-router.autoRoute("GET", "/custom") do (q: string) -> string:
+router.map("GET", "/custom") do (q: string) -> string:
   "you searched for " & q
 router.get("/") do (request: Request):
   request.respond(200, body = "the index")

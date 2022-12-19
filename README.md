@@ -33,84 +33,98 @@ import rowdy
 
 ## **proc** params
 
+
 ```nim
-func params(req): QueryParams {.raises: [ValueError].}
+func params(req: Request): QueryParams {.raises: [ValueError].}
 ```
 
 ## **proc** fromRequest
 
+
 ```nim
-proc fromRequest(req; k: string; v: var SomeInteger)
+proc fromRequest(req: Request; k: string; v: var SomeInteger)
 ```
 
 ## **proc** fromRequest
 
+
 ```nim
-proc fromRequest(req; k: string; v: var SomeFloat)
+proc fromRequest(req: Request; k: string; v: var SomeFloat)
 ```
 
 ## **proc** fromRequest
 
+
 ```nim
-proc fromRequest(req; k: string; v: var string) {.raises: [ValueError].}
+proc fromRequest(req: Request; k: string; v: var string) {.raises: [ValueError], tags: [].}
 ```
 
 ## **proc** fromRequest
 
+
 ```nim
-proc fromRequest(req; k: string; v: var bool) {.raises: [ValueError].}
+proc fromRequest(req: Request; k: string; v: var bool) {.raises: [ValueError], tags: [].}
 ```
 
 ## **proc** fromRequest
 
+
 ```nim
-proc fromRequest[T: object](req; key: string; v: var T)
+proc fromRequest[T: object](req: Request; key: string; v: var T)
 ```
 
 ## **proc** fromRequest
 
+
 ```nim
-proc fromRequest[T: ref object](req; key: string; v: var T)
+proc fromRequest[T: ref object](req: Request; key: string; v: var T)
 ```
 
 ## **proc** fromRequest
 
+
 ```nim
-proc fromRequest(req; key: string; v: var Request)
+proc fromRequest(req: Request; key: string; v: var Request)
 ```
 
-## **macro** expandHandler
+## **template** map
+
 
 ```nim
-macro expandHandler(request: Request; handler: proc): untyped
+template map(router: var Router; methud: string; handler: proc)
 ```
 
-## **template** autoRoute
+## **template** map
+
 
 ```nim
-template autoRoute(router: var Router; httpMethod: string; handler: proc)
+template map(router: var Router; methud, path: string; handler: proc)
 ```
 
 ## **template** get
 
+
 ```nim
-template get(router: var Router; handler: auto)
+template get(router: var Router; handler: proc)
 ```
 
 ## **template** put
 
+
 ```nim
-template put(router: var Router; handler: auto)
+template put(router: var Router; handler: proc)
 ```
 
 ## **template** delete
 
+
 ```nim
-template delete(router: var Router; handler: auto)
+template delete(router: var Router; handler: proc)
 ```
 
 ## **template** post
 
+
 ```nim
-template post(router: var Router; handler: auto)
+template post(router: var Router; handler: proc)
 ```
