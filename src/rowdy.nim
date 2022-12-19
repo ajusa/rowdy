@@ -7,11 +7,15 @@ func params*(req): QueryParams =
     req.uri.parseUrl.query
   else:
     req.body.parseUrl.query
-proc fromRequest*(req; key: string; v: var SomeInteger) =
-  if req.params[key].len != 0:
-    v = req.params[key].parseInt
-proc fromRequest*(req; key: string; v: var string) = v = req.params[key]
-proc fromRequest*(req; key: string; v: var bool) = v = req.params[key].len != 0
+proc fromRequest*(req; k: string; v: var SomeInteger) =
+  if k in req.params:
+    v = req.params[k].parseInt
+
+proc fromRequest*(req; k: string; v: var SomeFloat) =
+  if k in req.params:
+    v = req.params[k].parseFloat
+proc fromRequest*(req; k: string; v: var string) = v = req.params[k]
+proc fromRequest*(req; k: string; v: var bool) = v = k in req.params
 proc fromRequest*[T: object](req; key: string; v: var T) =
   for name, value in v.fieldPairs:
     req.fromRequest(name, value)
@@ -47,8 +51,8 @@ macro expandHandler*(request: Request; handler: proc): untyped =
 
 template autoRoute*(router: var Router; httpMethod: string; handler: proc) =
   block:
-    proc mummyHandler(req) =
-      req.expandHandler(handler)
+    proc mummyHandler(request: Request) =
+      request.expandHandler(handler)
     router.addRoute(httpMethod, "/" & astToStr(handler), mummyHandler)
 
 template get*(router: var Router; handler: auto) = router.autoRoute("GET", handler)
